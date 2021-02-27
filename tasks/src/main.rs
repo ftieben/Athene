@@ -4,6 +4,7 @@ use actix_web::{
 use futures::StreamExt;
 use json::JsonValue;
 use serde::{Deserialize, Serialize};
+use mongodb::{Client, options::ClientOptions};
 
 #[derive(Debug, Serialize, Deserialize)]
 enum TaskState {
@@ -73,11 +74,28 @@ async fn index_mjsonrust(body: web::Bytes) -> Result<HttpResponse, Error> {
         .body(injson.dump()))
 }
 
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
 
+    /*
+    // Parse a connection string into an options struct.
+    let mut mongo_client_options = ClientOptions::parse("mongodb://localhost:27017").await?;
+
+    // Manually set an option.
+    mongo_client_options.app_name = Some("athene_task".to_string());
+
+    // Get a handle to the deployment.
+    let mongo_client = Client::with_options(mongo_client_options)?;
+
+    // List the names of the databases in that deployment.
+    for db_name in mongo_client.list_database_names(None, None).await? {
+        println!("{}", db_name);
+    }
+
+    */
     HttpServer::new(|| {
         App::new()
             // enable logger
