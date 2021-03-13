@@ -1,10 +1,21 @@
 use actix_web::{
-    error, middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer,
+    middleware, web, App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
-use futures::StreamExt;
-use json::JsonValue;
 use serde::{Deserialize, Serialize};
-use mongodb::{Client, options::ClientOptions};
+use serde_json::Result;
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Task {
+    title: String,
+    task_id: String,
+    creator: String,
+    asigned: String,
+    description: String,
+    text: String,
+    labels: Vec<String>,
+    create_date: String,
+    state: TaskState
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 enum TaskState {
@@ -14,146 +25,62 @@ enum TaskState {
     Closed
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Task {
-    title: String,
-    number: i32,
-    creator: String,
-    asigned: String,
-    description: String,
-    text: String,
-    labels: String, //should be a vector
-    create_date: String,
-    state: TaskState
+async fn create_task(req: HttpRequest) -> impl Responder {
+    let task_id = req.match_info().get("task_id").unwrap_or("World");
+    format!("Hello {}!", &task_id)
 }
 
-/// This handler uses json extractor
-async fn index(item: web::Json<Task>) -> HttpResponse {
-    println!("model: {:?}", &item);
-    HttpResponse::Ok().json(item.0) // <- send response
-}
-
-/// This handler uses json extractor with limit
-async fn extract_item(item: web::Json<Task>, req: HttpRequest) -> HttpResponse {
-    println!("request: {:?}", req);
-    println!("model: {:?}", item);
-
-    HttpResponse::Ok().json(item.0) // <- send json response
-}
-
-const MAX_SIZE: usize = 262_144; // max payload size is 256k
-
-/// This handler manually load request payload and parse json object
-async fn index_manual(mut payload: web::Payload) -> Result<HttpResponse, Error> {
-    // payload is a stream of Bytes objects
-    let mut body = web::BytesMut::new();
-    while let Some(chunk) = payload.next().await {
-        let chunk = chunk?;
-        // limit max size of in-memory payload
-        if (body.len() + chunk.len()) > MAX_SIZE {
-            return Err(error::ErrorBadRequest("overflow"));
-        }
-        body.extend_from_slice(&chunk);
-    }
-
-    // body is loaded, now we can deserialize serde-json
-    let obj = serde_json::from_slice::<Task>(&body)?;
-    Ok(HttpResponse::Ok().json(obj)) // <- send response
-}
-
-/// This handler manually load request payload and parse json-rust
-async fn index_mjsonrust(body: web::Bytes) -> Result<HttpResponse, Error> {
-    // body is loaded, now we can deserialize json-rust
-    let result = json::parse(std::str::from_utf8(&body).unwrap()); // return Result
-    let injson: JsonValue = match result {
-        Ok(v) => v,
-        Err(e) => json::object! {"err" => e.to_string() },
+async fn read_task(task_id: web::Path<String>) -> Result<HttpResponse> {
+    
+    let result = Task { 
+        title: "t".to_string(),
+        task_id: task_id.to_owned(), 
+        creator:"peter".to_string(), 
+        asigned: "peter".to_string(), 
+        description:"hannelore".to_string(), 
+        text:"hannelore beschreibt peter".to_string(), 
+        labels: vec!["".to_string()], 
+        create_date: "".to_string(), 
+        state: TaskState::Created
     };
-    Ok(HttpResponse::Ok()
-        .content_type("application/json")
-        .body(injson.dump()))
+
+    Ok(HttpResponse::Ok().json(result))
 }
 
+
+async fn update_task(req: HttpRequest) -> impl Responder {
+    println!("update_task");
+    let task_id = req.match_info().get("task_id").unwrap_or("World");
+    format!("Hello {}!", &task_id)
+}
+
+async fn delete_task(req: HttpRequest) -> impl Responder {
+    println!("delete_task");
+    let task_id = req.match_info().get("task_id").unwrap_or("World");
+    format!("Hello {}!", &task_id)
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "actix_web=info");
+    std::env::set_var("RUST_LOG", "actix_web=debug");
     env_logger::init();
 
-    /*
-    // Parse a connection string into an options struct.
-    let mut mongo_client_options = ClientOptions::parse("mongodb://localhost:27017").await?;
-
-    // Manually set an option.
-    mongo_client_options.app_name = Some("athene_task".to_string());
-
-    // Get a handle to the deployment.
-    let mongo_client = Client::with_options(mongo_client_options)?;
-
-    // List the names of the databases in that deployment.
-    for db_name in mongo_client.list_database_names(None, None).await? {
-        println!("{}", db_name);
-    }
-
-    */
     HttpServer::new(|| {
         App::new()
-            // enable logger
+            // middleware
             .wrap(middleware::Logger::default())
+
+            // config
             .data(web::JsonConfig::default().limit(4096)) // <- limit size of the payload (global configuration)
-            .service(web::resource("/extractor").route(web::post().to(index)))
-            .service(
-                web::resource("/extractor2")
-                    .data(web::JsonConfig::default().limit(1024)) // <- limit size of the payload (resource level)
-                    .route(web::post().to(extract_item)),
-            )
-            .service(web::resource("/manual").route(web::post().to(index_manual)))
-            .service(web::resource("/mjsonrust").route(web::post().to(index_mjsonrust)))
-            .service(web::resource("/").route(web::post().to(index)))
+            
+            // routing
+            .service(web::resource("/{task_id}")
+                .route(web::post().to(create_task))
+                .route(web::get().to(read_task))
+                .route(web::put().to(update_task))
+                .route(web::delete().to(delete_task)))
     })
     .bind("127.0.0.1:8080")?
     .run()
     .await
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use actix_web::dev::Service;
-    use actix_web::{http, test, web, App};
-
-    #[actix_rt::test]
-    async fn test_index() -> Result<(), Error> {
-        let mut app = test::init_service(
-            App::new().service(web::resource("/").route(web::post().to(index))),
-        )
-        .await;
-
-        let req = test::TestRequest::post()
-            .uri("/")
-            .set_json(&Task {
-                title: "my-name".to_owned(),
-                number: 43,
-                creator: "String".to_owned(),
-                asigned: "String".to_owned(),
-                description: "String".to_owned(),
-                text: "String".to_owned(),
-                labels: "String".to_owned(), //should be a vector
-                create_date: "String".to_owned(),
-                state: TaskState::Finished
-            })
-            .to_request();
-        let resp = app.call(req).await.unwrap();
-
-        assert_eq!(resp.status(), http::StatusCode::OK);
-
-        let response_body = match resp.response().body().as_ref() {
-            Some(actix_web::body::Body::Bytes(bytes)) => bytes,
-            _ => panic!("Response error"),
-        };
-
-        assert_eq!(response_body, r##"{"name":"my-name","number":43}"##);
-
-        Ok(())
-    }
 }

@@ -19,7 +19,7 @@ Everything should run in docker and a docker-compose file should setup the whole
 ## frontend:
 * deno
 * vno
-* WASM to make gRPC calls to the backend 	
+* later: WASM to make gRPC calls to the backend 	
 
 ## auth
 * auth0

@@ -16,7 +16,7 @@ json = "0.12"
 config = "0.10"
 
 [dev-dependencies]
-actix-rt = "1"
+actix-rt = "2.0.2"
 
 [dependencies.mongodb]
 version = "1.1.1"
