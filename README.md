@@ -11,14 +11,16 @@ Writting a bug-tracker is a very good way to try out various ways of implementin
 # Technologies 
 Everything should run in docker and a docker-compose file should setup the whole project to make it easy for development
 
-## task and user backend:
+## task backend:
 * rust
-* actix-web
-* kafka
+  * actix-web
+* mongodb
+
+## user backend:
+* tbd
 
 ## frontend:
-* deno
-* vno
+* next.js
 * later: WASM to make gRPC calls to the backend 	
 
 ## auth
