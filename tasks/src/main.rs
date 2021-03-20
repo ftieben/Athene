@@ -47,6 +47,10 @@ async fn read_task(task_id: web::Path<String>) -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().json(result))
 }
 
+async fn list_task() -> impl Responder {
+    println!("list_task");
+    format!("Peter")
+}
 
 async fn update_task(req: HttpRequest) -> impl Responder {
     println!("update_task");
@@ -60,11 +64,14 @@ async fn delete_task(req: HttpRequest) -> impl Responder {
     format!("Hello {}!", &task_id)
 }
 
+
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=debug");
     env_logger::init();
-
+    let bind = "0.0.0.0:8080";
+    println!("Athene Task Module starting at {}", bind);
     HttpServer::new(|| {
         App::new()
             // middleware
@@ -72,7 +79,8 @@ async fn main() -> std::io::Result<()> {
 
             // config
             .data(web::JsonConfig::default().limit(4096)) // <- limit size of the payload (global configuration)
-            
+            .service(web::resource("/")
+                .route(web::get().to(list_task)))
             // routing
             .service(web::resource("/{task_id}")
                 .route(web::post().to(create_task))
@@ -80,7 +88,8 @@ async fn main() -> std::io::Result<()> {
                 .route(web::put().to(update_task))
                 .route(web::delete().to(delete_task)))
     })
-    .bind("127.0.0.1:8080")?
+    .bind(bind)?
     .run()
     .await
+    
 }
