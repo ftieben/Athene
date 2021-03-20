@@ -1,37 +1,38 @@
 import Layout from '../../components/layout'
 import Date from '../../components/date'
-import { getAllPostIds, getPostData } from '../../lib/posts'
+import { getAllTaskIds, getTaskData } from '../../lib/tasks'
 import Head from 'next/head'
 import utilStyles from '../../styles/utils.module.css'
 
 export async function getStaticProps({ params }) {
-  const postData = await getPostData(params.id)
+  const taskData = await getTaskData(params.id)
   return {
     props: {
-      postData
+      taskData
     }
   }
 }
+
 export async function getStaticPaths() {
-  const paths = getAllPostIds()
+  const paths = getAllTaskIds()
   return {
     paths,
     fallback: false
   }
 }
 
-export default function Post({ postData }) {
+export default function Task({ taskData }) {
     return (
       <Layout>
         <Head>
-          <title>{postData.title}</title>
+          <title>{taskData.title}</title>
         </Head>
         <article>
-          <h1 className={utilStyles.headingXl}>{postData.title}</h1>
+          <h1 className={utilStyles.headingXl}>{taskData.title}</h1>
           <div className={utilStyles.lightText}>
-            <Date dateString={postData.date} />
+            <Date dateString={taskData.date} />
           </div>
-          <div dangerouslySetInnerHTML={{ __html: postData.contentHtml }} />
+          <div dangerouslySetInnerHTML={{ __html: taskData.contentHtml }} />
         </article>
       </Layout>
     )
