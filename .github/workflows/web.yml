@@ -1,5 +1,8 @@
 name: Frontend-next.js
 on: [push]
+defaults:
+  run:
+    working-directory: web/
 jobs:
   build-web:
     runs-on: ubuntu-latest
