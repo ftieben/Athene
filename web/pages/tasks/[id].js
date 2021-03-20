@@ -1,6 +1,6 @@
 import Layout from '../../components/layout'
 import Date from '../../components/date'
-import { getAllTaskIds, getTaskData } from '../../lib/tasks'
+import { getTaskList } from '../../lib/tasks'
 import Head from 'next/head'
 import utilStyles from '../../styles/utils.module.css'
 
@@ -14,7 +14,7 @@ export async function getStaticProps({ params }) {
 }
 
 export async function getStaticPaths() {
-  const paths = getAllTaskIds()
+  const paths = getTaskList()
   return {
     paths,
     fallback: false

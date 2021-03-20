@@ -3,6 +3,14 @@ use actix_web::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Result;
+use mongodb::{Client, options::ClientOptions};
+
+use futures::stream::StreamExt;
+use mongodb::{
+    bson::{doc},
+    options::FindOptions,
+};
+
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Task {
@@ -24,6 +32,7 @@ struct TaskList {
     title: String,
     id: String,
     date: String,
+    owner: String
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -58,18 +67,30 @@ async fn read_task(task_id: web::Path<String>) -> Result<HttpResponse> {
 }
 
 async fn list_task() -> Result<HttpResponse> {
+    let mut client_options = ClientOptions::parse("mongodb://root:example@localhost:27017").await.expect("Some error message");
+    client_options.app_name = Some("athene-list_task".to_string());
+    let client = Client::with_options(client_options).expect("Some error message");
+    let db = client.database("athene");
     
-    let result = vec![TaskList { 
-        title: "t".to_string(),
-        id: "task_id".to_owned(), 
-        date:"2020-01-01".to_string(), 
-    }, TaskList { 
-        title: "t2".to_string(),
-        id: "task_id2".to_owned(), 
-        date:"2020-01-02".to_string(), 
-    }];
+    let collection = db.collection("tasks");
+    
+    // Query the documents in the collection with a filter and an option.
+    //let filter = doc! { "owner": "George Orwell" };
+    let filter = doc! { };
+    let find_options = FindOptions::builder().sort(doc! { "title": 1 }).build();
+    let mut cursor = collection.find(filter, find_options).await.expect("Some error message");
 
-    Ok(HttpResponse::Ok().json(result))
+    // Iterate over the results of the cursor.
+    let mut results = Vec::new();
+    while let Some(result) = cursor.next().await {
+        match result {
+            Ok(document) => {
+               results.push(document);
+            }
+            Err(_) => {},
+        }
+    }
+    Ok(HttpResponse::Ok().json(results))
 }
 
 
@@ -85,7 +106,6 @@ async fn delete_task(req: HttpRequest) -> impl Responder {
     let task_id = req.match_info().get("task_id").unwrap_or("World");
     format!("Hello {}!", &task_id)
 }
-
 
 
 #[actix_web::main]
