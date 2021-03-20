@@ -1,5 +1,8 @@
 name: Backend-Tasks
 on: [push]
+defaults:
+  run:
+    working-directory: tasks/
 jobs:
   check:
       name: Rust project
