@@ -112,13 +112,14 @@ async fn delete_task(req: HttpRequest) -> impl Responder {
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=debug");
     env_logger::init();
-    let bind = "0.0.0.0:8080";
+    //let bind = "0.0.0.0:8080";
+    let bind = "127.0.0.1:8080";
     println!("Athene Task Module starting at {}", bind);
+        
     HttpServer::new(|| {
         App::new()
             // middleware
             .wrap(middleware::Logger::default())
-
             // config
             .data(web::JsonConfig::default().limit(4096)) // <- limit size of the payload (global configuration)
             .service(web::resource("/")
